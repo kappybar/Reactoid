@@ -51,16 +51,37 @@ function createDom(fiber) {
 
 // element(Reactoid要素)をcontainerの要素の下にレンダリングする。
 function render(element, container) {
-    nextUnitOfWork = {
+    wipRoot = {
         dom: container,
         props: {
             children: [element],
         },
     }
+    nextUnitOfWork = wipRoot
 }
+
+// 今のroot
+let wipRoot = null
 
 // 次の作業単位
 let nextUnitOfWork = null
+
+// commitフェーズを実行する関数
+function commmitRoot() {
+    commitWork(wipRoot.child)
+    wipRoot = null
+}
+
+// 再帰的にDomについか
+function commitWork(fiber) {
+    if (!fiber) {
+        return
+    }
+    const domParent = fiber.parent.dom
+    domParent.appendChild(fiber.dom)
+    commitWork(fiber.child)
+    commitWork(fiber.sibling)
+}
 
 function workLoop(deadline) {
     let shouldYield = false
@@ -71,6 +92,11 @@ function workLoop(deadline) {
         shouldYield = deadline.timeRemaining() < 1
         // deadline.timeRemaining() でアイドル時間の残り時間を返す。(ms)
     }
+
+    if (!nextUnitOfWork && wipRoot) {
+        commmitRoot()
+    }
+
     requestIdleCallback(workLoop)
 }
 requestIdleCallback(workLoop)
@@ -79,9 +105,6 @@ function performUnitOfWork(fiber) {
     // DOMのノードを新しく作る
     if (!fiber.dom) {
         fiber.dom = createDom(fiber)
-    }
-    if (fiber.parent) {
-        fiber.parent.dom.appendChild(fiber.dom)
     }
 
     // 次のファイバーを作る
