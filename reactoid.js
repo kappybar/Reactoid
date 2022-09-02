@@ -87,31 +87,6 @@ function updateDom(dom, prevProps, nextProps) {
         })
 }
 
-// element(Reactoid要素)をcontainerの要素の下にレンダリングする。
-function render(element, container) {
-    wipRoot = {
-        dom: container,
-        props: {
-            children: [element],
-        },
-        alternate: currentRoot,
-    }
-    deletions = []
-    nextUnitOfWork = wipRoot
-}
-
-// 今、表示されているDom
-let currentRoot = null
-
-// 今、作業中のroot
-let wipRoot = null
-
-// 次の作業単位
-let nextUnitOfWork = null
-
-// 削除するノードを保管する配列
-let deletions = null
-
 // commitフェーズを実行する関数
 function commmitRoot() {
     commitWork(wipRoot.child)
@@ -137,6 +112,30 @@ function commitWork(fiber) {
     commitWork(fiber.sibling)
 }
 
+// element(Reactoid要素)をcontainerの要素の下にレンダリングする。
+function render(element, container) {
+    wipRoot = {
+        dom: container,
+        props: {
+            children: [element],
+        },
+        alternate: currentRoot,
+    }
+    deletions = []
+    nextUnitOfWork = wipRoot
+}
+
+// 今、表示されているDom
+let currentRoot = null
+
+// 今、作業中のroot
+let wipRoot = null
+
+// 次の作業単位
+let nextUnitOfWork = null
+
+// 削除するノードを保管する配列
+let deletions = null
 
 function workLoop(deadline) {
     let shouldYield = false
@@ -155,6 +154,31 @@ function workLoop(deadline) {
     requestIdleCallback(workLoop)
 }
 requestIdleCallback(workLoop)
+
+function performUnitOfWork(fiber) {
+    // DOMのノードを新しく作る
+    if (!fiber.dom) {
+        fiber.dom = createDom(fiber)
+    }
+
+    // 次のファイバーを作る
+    const elements = fiber.props.children
+    reconcileChildren(fiber, elements)
+
+    // 次の作業単位を返す
+    if (fiber.child) {
+        return fiber.child
+    }
+
+    let nextFiber = fiber
+    while (nextFiber) {
+        if (nextFiber.sibling) {
+            return nextFiber.sibling
+        }
+        nextFiber = nextFiber.parent
+    }
+
+}
 
 function reconcileChildren(wipFiber, elements) {
     let index = 0
@@ -208,29 +232,4 @@ function reconcileChildren(wipFiber, elements) {
         prevSibling = newFiber
         index++
     }
-}
-
-function performUnitOfWork(fiber) {
-    // DOMのノードを新しく作る
-    if (!fiber.dom) {
-        fiber.dom = createDom(fiber)
-    }
-
-    // 次のファイバーを作る
-    const elements = fiber.props.children
-    reconcileChildren(fiber, elements)
-
-    // 次の作業単位を返す
-    if (fiber.child) {
-        return fiber.child
-    }
-
-    let nextFiber = fiber
-    while (nextFiber) {
-        if (nextFiber.sibling) {
-            return nextFiber.sibling
-        }
-        nextFiber = nextFiber.parent
-    }
-
 }
