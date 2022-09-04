@@ -129,7 +129,7 @@ function commitEffect(fiber) {
     }
     if (fiber.hooks) {
         fiber.hooks.forEach(hook => {
-            if (hook.effect) hook.effect()
+            if (hook.effect && hook.exec) hook.effect()
         })
     }
     commitEffect(fiber.child)
@@ -254,9 +254,21 @@ function useState(initial) {
     return [hook.state, setState]
 }
 
-function useEffect(funcSideEffect) {
+function useEffect(funcSideEffect, deps) {
+    const oldDeps = wipFiber.alternate && wipFiber.alternate.hooks && wipFiber.alternate.hooks[hookIndex] && wipFiber.alternate.hooks[hookIndex].deps
     const hook = {
         effect: funcSideEffect,
+        deps: deps,
+        exec: true,
+    }
+    if (deps && oldDeps) {
+        hook.exec = false
+        // depsに含まれている変数が変更されている時のみ実行される。
+        for (let i = 0;i < deps.length; i++) {
+            if (deps[i] !== oldDeps[i]) {
+                hook.exec = true
+            }
+        }
     }
 
     wipFiber.hooks.push(hook)
