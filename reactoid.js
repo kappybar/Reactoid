@@ -2,6 +2,7 @@
 const Reactoid = {
     createElement,
     render,
+    useState
 }
 
 // typeとpropsとchildrenを受け取ってReactoid要素を作成する関数
@@ -193,10 +194,44 @@ function performUnitOfWork(fiber) {
 
 }
 
+let wipFiber = null 
+let hookIndex = null
+
 function updateFunctionComponent(fiber) {
+    wipFiber = fiber
+    hookIndex = 0
+    wipFiber.hooks = []
     // fiber.typeが関数コンポーネントになっているからそれにpropsを適用してReactoid要素を得る。
     const children = [fiber.type(fiber.props)]
     reconcileChildren(fiber, children)
+}
+
+function useState(initial) {
+    const oldHook = wipFiber.alternate && wipFiber.alternate.hooks && wipFiber.alternate.hooks[hookIndex]
+    const hook = {
+        state: oldHook ? oldHook.state : initial,
+        queue: [],
+    }
+
+    const actions = oldHook ? oldHook.queue : []
+    actions.forEach(action => {
+        hook.state = action(hook.state)
+    })
+
+    const setState = action => {
+        hook.queue.push(action)
+        wipRoot = {
+            dom: currentRoot.dom,
+            props: currentRoot.props,
+            alternate: currentRoot,
+        }
+        nextUnitOfWork = wipRoot
+        deletions = []
+    }
+
+    wipFiber.hooks.push(hook)
+    hookIndex++
+    return [hook.state, setState]
 }
 
 
