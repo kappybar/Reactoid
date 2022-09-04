@@ -89,6 +89,7 @@ function updateDom(dom, prevProps, nextProps) {
 
 // commitフェーズを実行する関数
 function commmitRoot() {
+    deletions.forEach(commitWork)
     commitWork(wipRoot.child)
     currentRoot = wipRoot
     wipRoot = null
