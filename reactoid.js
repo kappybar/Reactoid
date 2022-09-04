@@ -2,7 +2,8 @@
 const Reactoid = {
     createElement,
     render,
-    useState
+    useState,
+    useEffect,
 }
 
 // typeとpropsとchildrenを受け取ってReactoid要素を作成する関数
@@ -92,6 +93,7 @@ function updateDom(dom, prevProps, nextProps) {
 function commmitRoot() {
     deletions.forEach(commitWork)
     commitWork(wipRoot.child)
+    commitEffect(wipRoot)
     currentRoot = wipRoot
     wipRoot = null
 }
@@ -118,6 +120,20 @@ function commitWork(fiber) {
 
     commitWork(fiber.child)
     commitWork(fiber.sibling)
+}
+
+// 副作用を起こす関数をレンダリング後に実行
+function commitEffect(fiber) {
+    if (!fiber) {
+        return
+    }
+    if (fiber.hooks) {
+        fiber.hooks.forEach(hook => {
+            if (hook.effect) hook.effect()
+        })
+    }
+    commitEffect(fiber.child)
+    commitEffect(fiber.sibling)
 }
 
 function commitDeletion(fiber, domParent) {
@@ -236,6 +252,15 @@ function useState(initial) {
     wipFiber.hooks.push(hook)
     hookIndex++
     return [hook.state, setState]
+}
+
+function useEffect(funcSideEffect) {
+    const hook = {
+        effect: funcSideEffect,
+    }
+
+    wipFiber.hooks.push(hook)
+    hookIndex++
 }
 
 
