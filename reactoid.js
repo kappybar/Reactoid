@@ -168,6 +168,9 @@ function workLoop(deadline) {
     }
 
     requestIdleCallback(workLoop)
+    // 関数requestIdelCallbackによって、ブラウザがアイドル状態になった時にworkLoopを実行する
+    //　つまり、workLoopの最初のwhile文からわかるようにnextUnitOfWorkになにかを設定しておけばアイドル状態になったときに
+    // nextUnitOfworkのworkをしてくれる。
 }
 requestIdleCallback(workLoop)
 
@@ -202,6 +205,7 @@ function updateFunctionComponent(fiber) {
     hookIndex = 0
     wipFiber.hooks = []
     // fiber.typeが関数コンポーネントになっているからそれにpropsを適用してReactoid要素を得る。
+    // この関数コンポーネントの中にuseStateが入っているかもしれないから上でwipFiberとかhookIndexなどの初期化をしておく。
     const children = [fiber.type(fiber.props)]
     reconcileChildren(fiber, children)
 }
